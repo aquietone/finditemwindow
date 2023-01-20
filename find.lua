@@ -785,12 +785,16 @@ local function tribute()
     for k,v in pairs(selectedItems) do
         if v.item.Tribute() > 0 and v.location:find('pack') then
             printf('Going to %s item %s (%s)', action, v.item.Name(), v.location)
-            mq.cmdf('/nomodkey /itemnotify "%s" leftmouseup', v.item.Name())
-            mq.delay(500, function() return mq.TLO.Window('TMW_DonateWnd/TMW_ValueLabel').Text() == v.item.Tribute() end)
+            for i=1,10 do
+                mq.cmdf('/nomodkey /itemnotify "%s" leftmouseup', v.item.Name())
+                mq.delay(100, function() return tonumber(mq.TLO.Window('TMW_DonateWnd/TMW_ValueLabel').Text()) == v.item.Tribute() end)
+                if tonumber(mq.TLO.Window('TMW_DonateWnd/TMW_ValueLabel').Text()) == v.item.Tribute() then break end
+            end
             if mq.TLO.Window('TMW_DonateWnd/TMW_DonateButton').Enabled() then
                 mq.cmdf('/nomodkey /notify tmw_donatewnd TMW_DonateButton leftmouseup')
-                mq.delay(500, function() return not mq.TLO.Window('TMW_DonateWnd/TMW_DonateButton').Enabled() end)
+                mq.delay(1000, function() return not mq.TLO.Window('TMW_DonateWnd/TMW_DonateButton').Enabled() end)
                 donatedItems = donatedItems + 1
+                mq.delay(250) -- arbitrary delay for before selecting next item
             end
         end
     end
