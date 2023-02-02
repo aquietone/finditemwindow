@@ -5,6 +5,7 @@ local mq = require("mq")
 --- @type ImGui
 require("ImGui")
 
+local version = '1.0.2'
 local openGUI = true
 local shouldDrawGUI = true
 
@@ -52,6 +53,7 @@ local itemtypefilters = {'Any Type','Armor','weapon','Augmentation','container',
 local locationfilters = {'Any Location','on person','bank'}
 local classfilters = {'Any Class','Bard','Beastlord','Berserker','Cleric','Druid','Enchanter','Magician','Monk','Necromancer','Paladin','Ranger','Rogue','Shadow Knight','Shaman','Warrior','Wizard'}
 
+local searchExactMatch = true
 local searchText = ''
 local searchResults = {}
 local resultItems = {}
@@ -293,7 +295,6 @@ local function drawItemRow(item)
     ImGui.TableNextColumn()
 
     -- Reset the cursor to start position, then fetch and draw the item icon
-    local cursor_x, cursor_y = ImGui.GetCursorPos()
     animItems:SetTextureCell(itemIcon - EQ_ICON_OFFSET)
     ImGui.DrawTextureAnimation(animItems, ICON_WIDTH, ICON_HEIGHT)
 
@@ -305,19 +306,19 @@ local function drawItemRow(item)
     ImGui.PopStyleColor(3)
 
     ImGui.TableNextColumn()
-    ImGui.Text(itemName)
+    ImGui.Text("%s", itemName)
 
     ImGui.TableNextColumn()
 
     -- Overlay the stack size text in the lower right corner
     if stack > 1 then
-        ImGui.Text(tostring(stack))
+        ImGui.Text("%s", stack)
     else
         ImGui.Text('1')
     end
 
     ImGui.TableNextColumn()
-    ImGui.Text(itemLocation)
+    ImGui.Text("%s", itemLocation)
 
     ImGui.TableNextColumn()
     ImGui.Text("%s", item.item.Value()/1000)
@@ -581,19 +582,19 @@ local function drawSearchItemRow(item)
     end
     ImGui.TableNextColumn()
 
-    ImGui.Text(itemName)
+    ImGui.Text("%s", itemName)
 
     ImGui.TableNextColumn()
 
-    ImGui.Text(itemToon)
+    ImGui.Text("%s", itemToon)
 
     ImGui.TableNextColumn()
 
-    ImGui.Text(tostring(itemCount))
+    ImGui.Text("%s", itemCount)
 
     ImGui.TableNextColumn()
 
-    ImGui.Text(tostring(itemInBags))
+    ImGui.Text("%s", itemInBags)
 
     ImGui.TableNextColumn()
 end
@@ -619,6 +620,12 @@ local function displaySearchOptions()
     if newShouldSearchBank ~= shouldSearchBank then
         searchChanged = true
         shouldSearchBank = newShouldSearchBank
+    end
+    ImGui.SameLine()
+    local newExactSearch = ImGui.Checkbox('Exact Match', searchExactMatch)
+    if newExactSearch ~= searchExactMatch then
+        searchChanged = true
+        searchExactMatch = newExactSearch
     end
 end
 
@@ -825,27 +832,27 @@ local function query(peer, query, timeout)
     return value
 end
 
-local searchBags = 'FindItem[=%s]'
-local searchBank = 'FindItemBank[=%s]'
-local countBags = 'FindItemCount[=%s]'
-local countBank = 'FindItemBankCount[=%s]'
+local searchBags = 'FindItem[%s%s]'
+local searchBank = 'FindItemBank[%s%s]'
+local countBags = 'FindItemCount[%s%s]'
+local countBank = 'FindItemBankCount[%s%s]'
 local function executeDanNetQueries()
     searchResults = {}
     local toons = split(mq.TLO.DanNet.Peers())
     for _,toon in ipairs(toons) do
         if toon ~= mq.TLO.Me.CleanName():lower() then
             local searchedBank = false
-            local result = query(toon, searchBags:format(searchText), 500)
+            local result = query(toon, searchBags:format(searchExactMatch and '=' or '', searchText), 500)
             if result == 'NULL' and shouldSearchBank then
-                result = query(toon, searchBank:format(searchText), 500)
+                result = query(toon, searchBank:format(searchExactMatch and '=' or '', searchText), 500)
                 searchedBank = true
             end
-            if result ~= 'NULL' then
+            if result ~= 'NULL' and result ~= nil then
                 local search = countBags
                 if searchedBank then
                     search = countBank
                 end
-                local count = query(toon, search:format(searchText), 500)
+                local count = query(toon, search:format(searchExactMatch and '=' or '', searchText), 500)
                 table.insert(searchResults, {toon=toon, item=result, count=count, inbags=(searchedBank==false)})
             end
         end
