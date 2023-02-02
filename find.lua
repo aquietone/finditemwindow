@@ -5,7 +5,7 @@ local mq = require("mq")
 --- @type ImGui
 require("ImGui")
 
-local version = '1.0.2'
+local version = '1.0.3'
 local openGUI = true
 local shouldDrawGUI = true
 
