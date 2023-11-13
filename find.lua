@@ -5,7 +5,6 @@ local mq = require("mq")
 --- @type ImGui
 require("ImGui")
 
-local version = '1.0.3'
 local openGUI = true
 local shouldDrawGUI = true
 
@@ -65,21 +64,22 @@ local usingDanNet = true
 
 local selectedItems = {}
 
-local function insertItem(item, opts)
-    local entry = {item=item, itemslot=item.ItemSlot(), itemslot2=item.ItemSlot2()}
+local function insertItem(item, itemSlot, itemSlot2, opts)
+    --local entry = {item=item, itemslot=item.ItemSlot(), itemslot2=item.ItemSlot2()}
+    local entry = {item=item, itemslot=itemSlot, itemslot2=itemSlot2>0 and itemSlot2-1 or -1}
     if opts then for k,v in pairs(opts) do entry[k] = v end end
     table.insert(items, entry)
 end
 
-local function insertContainerItems(slot, opts)
+local function insertContainerItems(slot, itemSlot, opts)
     for j = 1, slot.Container() do
         local containerSlot = slot.Item(j)
         if containerSlot() then
-            insertItem(containerSlot, opts)
+            insertItem(containerSlot, itemSlot, j, opts)
         end
     end
     --print(slot.ItemSlot())
-    insertItem(slot, opts)
+    insertItem(slot, itemSlot, -1, opts)
 end
 
 local function isContainer(slot)
@@ -97,35 +97,35 @@ local function createInventory()
         for i = 23, 34 do
             local slot = mq.TLO.Me.Inventory(i)
             if isContainer(slot) then
-                insertContainerItems(slot)
+                insertContainerItems(slot, i)
             elseif slot.ID() ~= nil then
-                insertItem(slot) -- We have an item in a bag slot
+                insertItem(slot, i, -1) -- We have an item in a bag slot
             end
         end
         for i = 1, 24 do
             local slot = mq.TLO.Me.Bank(i)
             if isContainer(slot) then
-                insertContainerItems(slot, {bank=true})
+                insertContainerItems(slot, i, {bank=true})
             elseif slot.ID() ~= nil then
-                insertItem(slot, {bank=true}) -- We have an item in a bank slot
+                insertItem(slot, i, -1, {bank=true}) -- We have an item in a bank slot
             end
         end
         for i = 1, 2 do
             local slot = mq.TLO.Me.SharedBank(i)
             if isContainer(slot) then
-                insertContainerItems(slot, {sharedbank=true})
+                insertContainerItems(slot, i, {sharedbank=true})
             elseif slot.ID() ~= nil then
-                insertItem(slot, {sharedbank=true}) -- We have an item in a sharedbank slot
+                insertItem(slot, i, -1, {sharedbank=true}) -- We have an item in a sharedbank slot
             end
         end
         for i = 0, 22 do
             local slot = mq.TLO.InvSlot(i).Item
             if slot.ID() ~= nil then
-                insertItem(slot, {invslot=i})
+                insertItem(slot, i, -1, {invslot=i})
                 for j=1,8 do
                     local augSlot = slot.AugSlot(j).Item
                     if augSlot() then
-                        insertItem(augSlot, {invslot=i, augslot=j})
+                        insertItem(augSlot, i, -1, {invslot=i, augslot=j})
                     end
                 end
             end
